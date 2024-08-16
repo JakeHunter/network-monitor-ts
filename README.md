@@ -1,11 +1,5 @@
 A simple app for monitoring devices on your local network.
 
-I created this to monitor my nextcloud instance running on an old laptop.
+A .env file is needed in the root of the project directory to store sensitive info (ip addr, ssh secrets)
 
-npm install ping net-snmp express
-npm install --save-dev @types/express
-npm i --save-dev @types/ping
-
-I save the IP I actually want to monitor in a .env file
-
-todo: make server display SNMP info
+todo: make server display SNMP info, possibly docker stats

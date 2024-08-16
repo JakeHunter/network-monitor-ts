@@ -13,7 +13,8 @@ if (!targetIp) {
     process.exit(1);
 }
 
-// Configure winston logger
+const pingResults: { ip: string; status: string; timestamp: string }[] = [];
+
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.combine(
@@ -29,25 +30,29 @@ const logger = winston.createLogger({
 const pingDevice = async (ip: string, retries: number = 0): Promise<void> => {
     try {
         const res = await ping.promise.probe(ip);
-        if (res.alive) {
-            logger.info(`Ping ${ip}: alive`);
-        } else {
-            logger.warn(`Ping ${ip}: dead`);
-            if (retries < maxRetries) {
-                logger.info(`Retrying (${retries + 1}/${maxRetries})...`);
-                await pingDevice(ip, retries + 1);
-            }
+        const status = res.alive ? 'alive' : 'dead';
+        const timestamp = new Date().toISOString();
+
+        logger.info(`Ping ${ip}: ${status}`);
+
+        pingResults.push({ ip, status, timestamp });
+
+        if (pingResults.length > 100) pingResults.shift();
+
+        if (!res.alive && retries < maxRetries) {
+            logger.info(`Retrying (${retries + 1}/${maxRetries})...`);
+            await pingDevice(ip, retries + 1);
         }
     } catch (error) {
         logger.error(`Failed to ping ${ip}:`, error);
     }
 };
 
-const intervalId = setInterval(() => pingDevice(targetIp), pingInterval);
+setInterval(() => pingDevice(targetIp), pingInterval);
 
-// Graceful shutdown on SIGINT (Ctrl+C)
 process.on('SIGINT', () => {
     logger.info('Received SIGINT. Shutting down...');
-    clearInterval(intervalId);
     process.exit(0);
 });
+
+export { pingResults };
